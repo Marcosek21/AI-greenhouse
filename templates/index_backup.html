@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Szklarni</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-height: 100vh;
+        }
+        .status {
+            display: flex;
+            gap: 20px;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .status-box {
+            flex: 1;
+            min-width: 280px;
+            background-color: #e5f7e9;
+            border-radius: 8px;
+            padding: 10px 15px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+        .status-box.extra {
+            background-color: #f0f3fa;
+        }
+        .status-box h3 {
+            margin-top: 0;
+            font-size: 16px;
+            text-align: center;
+            color: #333;
+        }
+        .status-column {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-weight: bold;
+            font-size: 15px;
+        }
+        .table-container {
+            overflow-y: auto;
+            max-height: 30vh;
+            border: 1px solid #ccc;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 6px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        canvas {
+            max-height: 35vh;
+        }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .gallery-grid img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .gallery-grid img:hover {
+            transform: scale(1.05);
+        }
+        #photo-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #modal-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #photo-modal img {
+            max-width: 90%;
+            max-height: 85%;
+            border-radius: 8px;
+        }
+        #modal-title {
+            color: #fff;
+            margin-top: 10px;
+            font-size: 18px;
+            text-align: center;
+            opacity: 0.9;
+        }
+        #close-btn {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            z-index: 1001;
+            transition: color 0.2s ease;
+        }
+        #close-btn:hover {
+            color: #ff6666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Panel szklarni</h1>
+    <div class="container">
+
+        <div class="status" id="latest">
+            <div class="status-box extra" id="weather-section">
+                <h3>🌤 Pogoda w Poznaniu</h3>
+                <div id="weather-info">Ładowanie danych pogodowych...</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>🌡️ Temperatura (°C)</th>
+                        <th>💧 Wilgotność powietrza (%)</th>
+                        <th>🌱 Wilgotność gleby 1 (%)</th>
+                        <th>🌱 Wilgotność gleby 2 (%)</th>
+                        <th>🚰 Poziom wody (%)</th>
+                        <th>💡 Natężenie światła (lux)</th>
+                        <th>🔋 Poziom naładowania (%)</th>
+                        <th>🕒 Czas</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-body"></tbody>
+            </table>
+        </div>
+
+        <div>
+            <h2>Wykres temperatury i wilgotności</h2>
+            <canvas id="chart"></canvas>
+        </div>
+
+        <div class="status-box extra" id="gallery-section">
+            <h2>📸 Galeria zdjęć szklarni</h2>
+            <div id="gallery" class="gallery-grid"></div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+
+        // 🌦️ Pogoda — aktualizacja bez mrugania
+        async function updateWeather() {
+            try {
+                const response = await fetch('/api/weather');
+                const data = await response.json();
+                const el = document.getElementById('weather-info');
+                if (!el) return;
+
+                if (data.error) {
+                    el.innerText = "Błąd pobierania danych pogodowych.";
+                    return;
+                }
+                const opady = data.is_raining ? "🌧️ Tak" : "☀️ Nie";
+                const temp = data.temperature !== null ? data.temperature.toFixed(1) + " °C" : "–";
+                el.innerText = `🌡️ Temperatura: ${temp} | ${data.description} | Opady: ${opady}`;
+            } catch {
+                const el = document.getElementById('weather-info');
+                if (el) el.innerText = "Błąd połączenia z API pogodowym.";
+            }
+        }
+        updateWeather();
+        setInterval(updateWeather, 600000);
+
+        // 🌿 Dane czujników
+        const ctx = document.getElementById('chart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [
+                { label: 'Temperatura (°C)', data: [], borderColor: 'red', borderWidth: 2 },
+                { label: 'Wilgotność (%)', data: [], borderColor: 'blue', borderWidth: 2 }
+            ]},
+            options: {
+                responsive: true,
+                animation: false,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { title: { display: true, text: 'Czas' } },
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        async function updateChart() {
+            const response = await fetch('/api/chart-data');
+            const data = await response.json();
+            chart.data.labels = data.labels;
+            chart.data.datasets[0].data = data.temperature;
+            chart.data.datasets[1].data = data.humidity;
+            chart.update();
+        }
+
+        async function updateTable() {
+            const response = await fetch('/api/table-data');
+            const rows = await response.json();
+            const tbody = document.getElementById('tabela-body');
+            tbody.innerHTML = '';
+            rows.forEach(row => {
+                const localTime = new Date(row.timestamp + 'Z').toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw', hour12: false });
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.temperature}</td>
+                    <td>${row.humidity}</td>
+                    <td>${row.soil_1}</td>
+                    <td>${row.soil_2}</td>
+                    <td>${row.water_level}</td>
+                    <td>${row.light}</td>
+                    <td>${row.battery}</td>
+                    <td>${localTime}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function updateLatest() {
+            const response = await fetch('/api/latest');
+            const data = await response.json();
+            const localTime = new Date(data.timestamp + 'Z').toLocaleString('pl-PL', {
+                timeZone: 'Europe/Warsaw', hour12: false
+            });
+
+            const div = document.getElementById('latest');
+            if (!document.getElementById('climate-box')) {
+                const newHTML = `
+                    <div class="status-box" id="climate-box">
+                        <h3>🌿 Dane klimatyczne</h3>
+                        <div class="status-column" id="climate-column"></div>
+                    </div>
+                    <div class="status-box extra" id="extra-box">
+                        <h3>⚙️ Dane dodatkowe</h3>
+                        <div class="status-column" id="extra-column"></div>
+                    </div>`;
+                div.insertAdjacentHTML('afterbegin', newHTML);
+            }
+            document.getElementById('climate-column').innerHTML = `
+                <div>🌡️ Temperatura: ${data.temperature} °C</div>
+                <div>💧 Wilgotność powietrza: ${data.humidity} %</div>
+                <div>🌱 Wilgotność gleby 1: ${data.soil_1} %</div>
+                <div>🌱 Wilgotność gleby 2: ${data.soil_2} %</div>
+                <div>💡 Natężenie światła: ${data.light} lux</div>`;
+            document.getElementById('extra-column').innerHTML = `
+                <div>🚰 Poziom wody: ${data.water_level} %</div>
+                <div>🔋 Poziom naładowania: ${data.battery} %</div>
+                <div>🕒 ${localTime}</div>`;
+        }
+
+        updateChart();
+        updateTable();
+        updateLatest();
+        setInterval(() => { updateChart(); updateTable(); updateLatest(); }, 5000);
+
+        // 📸 Galeria zdjęć z tytułem i działającym krzyżykiem
+        async function loadGallery() {
+            const response = await fetch('/api/gallery');
+            const photos = await response.json();
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '';
+            photos.forEach(p => {
+                const img = document.createElement('img');
+                img.src = p.url;
+                img.alt = p.name;
+                img.onclick = () => openModal(p.url, p.name);
+                gallery.appendChild(img);
+            });
+        }
+
+        function openModal(src, title) {
+            const modal = document.getElementById('photo-modal');
+            const modalImg = document.getElementById('modal-img');
+            const modalTitle = document.getElementById('modal-title');
+            modalImg.src = src;
+            modalTitle.textContent = title || '';
+            modal.style.display = 'flex';
+
+            modal.onclick = (e) => {
+                if (e.target === modal) closeModal();
+            };
+
+            const closeBtn = document.getElementById('close-btn');
+            closeBtn.onclick = (e) => {
+                e.stopPropagation();
+                closeModal();
+            };
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('photo-modal');
+            modal.style.display = 'none';
+            modal.onclick = null;
+        }
+
+        setInterval(loadGallery, 60000);
+        loadGallery();
+    });
+    </script>
+
+    <!-- Modal z przyciskiem zamykania i tytułem -->
+    <div id="photo-modal">
+        <span id="close-btn">✖</span>
+        <div id="modal-content">
+            <img id="modal-img" src="" alt="Podgląd zdjęcia">
+            <div id="modal-title"></div>
+        </div>
+    </div>
+</body>
+</html>

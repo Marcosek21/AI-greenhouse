@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍃</text></svg>">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel szklarni</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-inter">
+  <!-- Header -->
+  <header class="bg-green-600 text-white shadow-md py-4 mb-6">
+    <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
+      <h1 class="text-2xl font-semibold flex items-center gap-2">
+        🌿 Panel szklarni
+      </h1>
+      <div id="current-time" class="text-sm opacity-90"></div>
+    </div>
+  </header>
+
+  <!-- Tabs Navigation -->
+  <div class="max-w-7xl mx-auto px-4 mb-4">
+    <div class="flex justify-center gap-4">
+      <button id="tab-home" class="tab-btn bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 flex items-center gap-2">
+        🏠 Strona główna
+      </button>
+      <button id="tab-advanced" class="tab-btn bg-gray-200 text-gray-800 px-4 py-2 rounded-lg shadow hover:bg-gray-300 flex items-center gap-2">
+        ⚙️ Zaawansowane
+      </button>
+    </div>
+  </div>
+
+  <main id="home-tab" class="max-w-7xl mx-auto px-4 space-y-6">
+
+    <!-- Weather and Status -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-blue-50 rounded-2xl shadow p-4">
+        <h2 class="font-semibold text-lg mb-2 text-center">🌤 Pogoda w Poznaniu</h2>
+        <div id="weather-info" class="text-center text-gray-700">Ładowanie danych pogodowych...</div>
+      </div>
+
+      <div class="bg-green-50 rounded-2xl shadow p-4">
+        <h2 class="font-semibold text-lg mb-2 text-center">🌡️ Klimat</h2>
+        <div id="climate-column" class="space-y-1 text-center"></div>
+      </div>
+
+      <div class="bg-emerald-50 rounded-2xl shadow p-4">
+        <h2 class="font-semibold text-lg mb-2 text-center">⚙️ Zasoby i czas</h2>
+        <div id="extra-column" class="space-y-1 text-center"></div>
+      </div>
+    </section>
+
+    <!-- Soil Data -->
+    <section class="grid grid-cols-1 md:grid-cols-1 gap-6">
+      <div class="bg-yellow-50 rounded-2xl shadow p-4">
+        <h2 class="font-semibold text-lg mb-2 text-center">🌱 Wilgotność gleby</h2>
+        <div id="soil-column" class="space-y-1 text-center"></div>
+      </div>
+    </section>
+
+    <!-- Chart Section -->
+    <section class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-semibold text-lg mb-4 text-center">📈 Wykres temperatury i wilgotności</h2>
+      <div class="relative h-96">
+        <canvas id="chart" class="rounded-xl bg-gray-50 p-2"></canvas>
+      </div>
+    </section>
+
+    <!-- Table Section -->
+    <section class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-semibold text-lg mb-4 text-center">📋 Dane pomiarowe</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm border border-gray-200">
+          <thead class="bg-green-100 text-gray-800">
+            <tr>
+              <th class="px-3 py-2 border">🌡️ Temp (°C)</th>
+              <th class="px-3 py-2 border">💧 Wilg. pow. (%)</th>
+              <th class="px-3 py-2 border">🌱 Wilg. gleby doniczka 1 (%)</th>
+              <th class="px-3 py-2 border">🌱 Wilg. gleby doniczka 2 (%)</th>
+              <th class="px-3 py-2 border">🚰 Poziom wody (%)</th>
+              <th class="px-3 py-2 border">💡 Natężenie światła (lux)</th>
+              <th class="px-3 py-2 border">🔋 Bateria (%)</th>
+              <th class="px-3 py-2 border">🕒 Czas</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section class="bg-white rounded-2xl shadow p-4">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="font-semibold text-lg">📸 Galeria zdjęć szklarni</h2>
+        <button onclick="loadGallery()" class="bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700">Odśwież</button>
+      </div>
+      <div id="gallery" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+    </section>
+  </main>
+
+  <!-- Modal -->
+  <div id="photo-modal" class="fixed inset-0 bg-black bg-opacity-80 hidden justify-center items-center z-50">
+    <span id="close-btn" class="absolute top-5 right-8 text-white text-3xl cursor-pointer">✖</span>
+    <div id="modal-content" class="flex flex-col items-center">
+      <img id="modal-img" src="" alt="Podgląd" class="max-w-[90%] max-h-[80%] rounded-xl shadow-lg">
+      <div id="modal-title" class="text-white mt-3 text-lg text-center opacity-90"></div>
+    </div>
+  </div>
+
+  <script>
+  // Aktualizacja zegara w nagłówku
+  setInterval(() => {
+    const now = new Date().toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' });
+    document.getElementById('current-time').innerText = now;
+  }, 1000);
+
+  document.addEventListener("DOMContentLoaded", () => {
+    async function updateWeather() {
+      try {
+        const response = await fetch('/api/weather');
+        const data = await response.json();
+        const el = document.getElementById('weather-info');
+        if (data.error) { el.innerText = "Błąd pobierania danych pogodowych."; return; }
+        const opady = data.is_raining ? "🌧️ Tak" : "☀️ Nie";
+        el.innerText = `🌡️ ${data.temperature.toFixed(1)} °C | ${data.description} | Opady: ${opady}`;
+      } catch {
+        document.getElementById('weather-info').innerText = "Błąd połączenia z API pogodowym.";
+      }
+    }
+
+    const ctx = document.getElementById('chart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: { labels: [], datasets: [
+        { label: 'Temperatura (°C)', data: [], borderColor: '#e11d48', tension: 0.3, borderWidth: 2, fill: false },
+        { label: 'Wilgotność (%)', data: [], borderColor: '#2563eb', tension: 0.3, borderWidth: 2, fill: false }
+      ]},
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: true, position: 'bottom' } },
+        scales: { x: { title: { display: true, text: 'Czas' } }, y: { beginAtZero: true } }
+      }
+    });
+
+    async function updateChart() {
+      const response = await fetch('/api/chart-data');
+      const data = await response.json();
+      chart.data.labels = data.labels;
+      chart.data.datasets[0].data = data.temperature;
+      chart.data.datasets[1].data = data.humidity;
+      chart.update();
+    }
+
+    async function updateTable() {
+      const response = await fetch('/api/table-data');
+      const rows = await response.json();
+      const tbody = document.getElementById('tabela-body');
+      tbody.innerHTML = '';
+      rows.forEach(row => {
+        const localTime = new Date(row.timestamp + 'Z').toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw', hour12: false });
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class='border px-2 py-1'>${row.temperature}</td>
+          <td class='border px-2 py-1'>${row.humidity}</td>
+          <td class='border px-2 py-1'>${row.soil_1}</td>
+          <td class='border px-2 py-1'>${row.soil_2}</td>
+          <td class='border px-2 py-1'>${row.water_level}</td>
+          <td class='border px-2 py-1'>${row.light}</td>
+          <td class='border px-2 py-1'>${row.battery}</td>
+          <td class='border px-2 py-1'>${localTime}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function updateLatest() {
+      const response = await fetch('/api/latest');
+      const data = await response.json();
+      const localTime = new Date(data.timestamp + 'Z').toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw', hour12: false });
+      document.getElementById('climate-column').innerHTML = `
+        <div>🌡️ Temp: ${data.temperature} °C</div>
+        <div>💧 Wilgotność: ${data.humidity} %</div>
+        <div>💡 Natężenie światła: ${data.light} lux</div>`;
+      document.getElementById('soil-column').innerHTML = `
+        <div>🌱 Wilg. gleby doniczka 1: ${data.soil_1} %</div>
+        <div>🌱 Wilg. gleby doniczka 2: ${data.soil_2} %</div>`;
+      
+      document.getElementById('extra-column').innerHTML = `
+        <div>🚰 Poziom wody: ${data.water_level} %</div>
+        <div>🔋 Bateria: ${data.battery} %</div>
+        <div>🕒 ${localTime}</div>`;
+    }
+
+    async function loadGallery() {
+      const response = await fetch('/api/gallery');
+      const photos = await response.json();
+      const gallery = document.getElementById('gallery');
+      gallery.innerHTML = '';
+      photos.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'bg-gray-100 rounded-xl shadow hover:shadow-md overflow-hidden transition-all';
+        card.innerHTML = `
+          <img src="${p.url}" alt="${p.name}" class="w-full h-32 object-cover cursor-pointer" onclick="openModal('${p.url}', '${p.name}')">
+          <div class="p-2 text-center text-sm text-gray-700">${p.name}</div>`;
+        gallery.appendChild(card);
+      });
+    }
+
+    window.openModal = (src, title) => {
+      const modal = document.getElementById('photo-modal');
+      document.getElementById('modal-img').src = src;
+      document.getElementById('modal-title').innerText = title || '';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    };
+
+    document.getElementById('close-btn').onclick = () => {
+      document.getElementById('photo-modal').classList.add('hidden');
+    };
+
+    updateWeather(); updateChart(); updateTable(); updateLatest(); loadGallery();
+    setInterval(() => { updateChart(); updateTable(); updateLatest(); }, 5000);
+    setInterval(updateWeather, 600000);
+    setInterval(loadGallery, 60000);
+  });
+  </script>
+
+  <!-- Zakładka zaawansowana -->
+  <main id="advanced-tab" class="max-w-4xl mx-auto px-4 space-y-6 hidden">
+    <section class="bg-white rounded-2xl shadow p-6">
+      <h2 class="text-2xl font-semibold text-center mb-6">⚙️ Panel zaawansowany – Sterowanie szklarnią</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+        <div class="bg-green-50 rounded-xl p-4 shadow text-center">
+          <h3 class="font-semibold text-lg mb-3">🌤 Dach</h3>
+          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Otwórz</button>
+          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Zamknij</button>
+        </div>
+
+        <div class="bg-blue-50 rounded-xl p-4 shadow text-center">
+          <h3 class="font-semibold text-lg mb-3">🚰 Zawór 1</h3>
+          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Otwórz</button>
+          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Zamknij</button>
+        </div>
+
+        <div class="bg-blue-50 rounded-xl p-4 shadow text-center">
+          <h3 class="font-semibold text-lg mb-3">🚰 Zawór 2</h3>
+          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Otwórz</button>
+          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Zamknij</button>
+        </div>
+
+        <div class="bg-yellow-50 rounded-xl p-4 shadow text-center">
+          <h3 class="font-semibold text-lg mb-3">💡 Oświetlenie</h3>
+          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Włącz</button>
+          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Wyłącz</button>
+        </div>
+
+        <div class="bg-orange-50 rounded-xl p-4 shadow text-center">
+          <h3 class="font-semibold text-lg mb-3">🔥 Ogrzewanie</h3>
+          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Włącz</button>
+          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Wyłącz</button>
+        </div>
+
+        <div class="bg-emerald-50 rounded-xl p-4 shadow text-center">
+          <h3 class="font-semibold text-lg mb-3">💧 Pompa</h3>
+          <button class="bg-blue-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-blue-700">Uruchom na 10s</button>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+  // Logika przełączania zakładek
+  document.addEventListener('DOMContentLoaded', () => {
+    const homeTab = document.getElementById('home-tab');
+    const advTab = document.getElementById('advanced-tab');
+    const btnHome = document.getElementById('tab-home');
+    const btnAdv = document.getElementById('tab-advanced');
+
+    btnHome.addEventListener('click', () => {
+      homeTab.classList.remove('hidden');
+      advTab.classList.add('hidden');
+      btnHome.classList.add('bg-green-600', 'text-white');
+      btnHome.classList.remove('bg-gray-200', 'text-gray-800');
+      btnAdv.classList.add('bg-gray-200', 'text-gray-800');
+      btnAdv.classList.remove('bg-green-600', 'text-white');
+    });
+
+    btnAdv.addEventListener('click', () => {
+      advTab.classList.remove('hidden');
+      homeTab.classList.add('hidden');
+      btnAdv.classList.add('bg-green-600', 'text-white');
+      btnAdv.classList.remove('bg-gray-200', 'text-gray-800');
+      btnHome.classList.add('bg-gray-200', 'text-gray-800');
+      btnHome.classList.remove('bg-green-600', 'text-white');
+    });
+  });
+  </script>
+</body>
+</html>
+
