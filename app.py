@@ -6,6 +6,8 @@ import requests
 import base64
 import os
 from dotenv import load_dotenv
+import zlib
+import binascii
 
 load_dotenv()
 UPLOAD_DIR = "uploads"
@@ -105,36 +107,60 @@ def chart_data():
 
 @app.route('/api/upload', methods=['POST'])
 def upload_image_part():
-    """Odbiera fragmenty Base64, składa i zapisuje plik JPG"""
+    """Odbiera fragmenty Base64, weryfikuje CRC i składa plik JPG"""
     data = request.json
     filename = data.get('filename')
     part = data.get('part')
     total_parts = data.get('total_parts')
     encoded_data = data.get('data')
+    crc_sent = data.get('crc32')
 
-    if not all([filename, part, total_parts, encoded_data]):
-        return jsonify({'error': 'Missing data'}), 400
+    if not all([filename, part, total_parts, encoded_data, crc_sent is not None]):
+        return jsonify({'status': 'error', 'message': 'Missing data'}), 400
 
-    # Zapisz fragment do pliku tymczasowego
+    # 🔹 Oczyszczenie danych base64
+    clean_data = encoded_data.strip().replace("\n", "").replace("\r", "")
+
+    # 🔹 Oblicz CRC32 po stronie serwera
+    crc_calc = zlib.crc32(clean_data.encode("utf-8")) & 0xFFFFFFFF
+
+    if crc_calc != int(crc_sent):
+        print(f"❌ CRC mismatch for part {part}/{total_parts} of {filename}")
+        return jsonify({
+            'status': 'error',
+            'part': part,
+            'message': f'CRC mismatch (sent={crc_sent}, calc={crc_calc})'
+        }), 400
+
+    # 🔹 Zapisz część jeśli CRC OK
     part_path = os.path.join(TEMP_DIR, f"{filename}.part{part}")
     with open(part_path, "wb") as f:
-        f.write(encoded_data.encode())
+        f.write(clean_data.encode("utf-8"))
 
-    print(f"📦 Otrzymano część {part}/{total_parts} pliku {filename}")
+    print(f"📦 Received part {part}/{total_parts} for {filename} (CRC OK)")
 
-    # Jeśli to ostatni fragment → scal wszystko
+    # 🔹 Jeśli to ostatni fragment — scal plik
     if int(part) == int(total_parts):
         output_file = os.path.join(UPLOAD_DIR, filename)
         with open(output_file, "wb") as out:
             for i in range(1, total_parts + 1):
                 part_path = os.path.join(TEMP_DIR, f"{filename}.part{i}")
                 with open(part_path, "rb") as p:
-                    out.write(base64.b64decode(p.read()))
+                    part_data = p.read().decode("utf-8").strip()
+                    missing_padding = len(part_data) % 4
+                    if missing_padding:
+                        part_data += "=" * (4 - missing_padding)
+                    out.write(base64.b64decode(part_data))
                 os.remove(part_path)
-        print(f"✅ Złożono plik: {output_file}")
+        print(f"✅ File assembled successfully: {output_file}")
         return jsonify({'status': 'done', 'file': f"/uploads/{filename}"}), 200
 
-    return jsonify({'status': 'ok', 'message': f'Part {part}/{total_parts} received'}), 200
+    # 🔹 W przeciwnym razie tylko potwierdź odbiór fragmentu
+    return jsonify({
+        'status': 'ok',
+        'part': part,
+        'message': 'CRC OK, part received'
+    }), 200
 
 
 @app.route('/uploads/<path:filename>')
