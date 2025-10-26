@@ -243,17 +243,45 @@
 
     // --- Ostatni pomiar ---
     async function updateLatest() {
-      const response = await fetch('/api/latest');
-      const data = await response.json();
-      const localTime = new Date(data.timestamp + 'Z').toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw', hour12: false });
-      document.getElementById('climate-column').innerHTML = `
-        <div>🌡️ Temp: ${data.temperature} °C</div>
-        <div>💧 Wilgotność: ${data.humidity} %</div>
-        <div>💡 Natężenie światła: ${data.light} lux</div>`;
-      document.getElementById('soil-column').innerHTML = `
-        <div>🌱 Wilg. gleby 1: ${data.soil_1} %</div>
-        <div>🌱 Wilg. gleby 2: ${data.soil_2} %</div>`;
+  try {
+    const response = await fetch('/api/latest');
+    const data = await response.json();
+
+    if (!data || Object.keys(data).length === 0) {
+      document.getElementById('extra-column').innerHTML = "<div class='text-gray-500 italic'>Brak danych z czujników</div>";
+      return;
     }
+
+    const localTime = new Date(data.timestamp + 'Z').toLocaleString('pl-PL', {
+      timeZone: 'Europe/Warsaw',
+      hour12: false
+    });
+
+    // 🌡️ Sekcja klimat
+    document.getElementById('climate-column').innerHTML = `
+      <div>🌡️ Temp: ${data.temperature?.toFixed(1)} °C</div>
+      <div>💧 Wilgotność: ${data.humidity?.toFixed(1)} %</div>
+      <div>💡 Natężenie światła: ${data.light?.toFixed(0)} lux</div>
+    `;
+
+    // 🌱 Sekcja gleby
+    document.getElementById('soil-column').innerHTML = `
+      <div>🌱 Wilg. gleby 1: ${data.soil_1?.toFixed(1)} %</div>
+      <div>🌱 Wilg. gleby 2: ${data.soil_2?.toFixed(1)} %</div>
+    `;
+
+    // ⚙️ Sekcja zasoby i czas
+    document.getElementById('extra-column').innerHTML = `
+      <div>📏 Odległość od lustra wody: ${data.water_level?.toFixed(1) ?? data.water_distance?.toFixed(1)} cm</div>
+      <div>🔋 Napięcie baterii: ${(data.battery_voltage ?? 0).toFixed(2)} V</div>
+      <div>🔋 Szacowany poziom: ${(data.battery ?? 0).toFixed(0)} %</div>
+      <div>🕒 Ostatni pomiar: ${localTime}</div>
+    `;
+  } catch (err) {
+    document.getElementById('extra-column').innerHTML = "<div class='text-red-600 italic'>Błąd wczytywania danych</div>";
+  }
+}
+
 
     // --- Galeria ---
     async function loadGallery() {
