@@ -8,6 +8,7 @@ import os
 from dotenv import load_dotenv
 import zlib
 import binascii
+import math
 
 load_dotenv()
 UPLOAD_DIR = "uploads"
@@ -25,16 +26,33 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 app = Flask(__name__)
 CORS(app)
 
+def calculate_battery_level(v_bat: float) -> float:
+    """Oblicza procent naładowania baterii na podstawie napięcia."""
+    if v_bat is None:
+        return None
+    level = (v_bat - 8.1) / 4.5 * 100
+    return max(0, min(100, level))
+
+def calculate_water_volume(bucket_height, bucket_diameter, water_distance):
+    """Oblicza objętość wody (litry) w pojemniku cylindrycznym."""
+    if None in (bucket_height, bucket_diameter, water_distance):
+        return None
+    h_water = max(0, bucket_height - water_distance)
+    radius = bucket_diameter / 2
+    volume_cm3 = math.pi * (radius ** 2) * h_water
+    return round(volume_cm3 / 1000, 2)  # w litrach
+    
 def get_data():
     conn = sqlite3.connect('czujniki.db')
     c = conn.cursor()
     c.execute("""
-        SELECT temperature, humidity, water_level, soil_1, soil_2, light, battery, timestamp
+        SELECT temperature, humidity, water_distance, soil_1, soil_2, light, battery_voltage, timestamp
         FROM czujniki ORDER BY timestamp DESC LIMIT 20
     """)
     rows = c.fetchall()
     conn.close()
     return rows
+
 
 @app.route('/')
 def index():
@@ -43,57 +61,69 @@ def index():
 
 @app.route('/api/data', methods=['POST'])
 def receive_data():
+    """Odbiera dane pomiarowe ze szklarni (bezpośrednie wartości z czujników)."""
     data = request.json
+
+    temperature = data.get('temperature')
+    humidity = data.get('humidity')
+    soil_1 = data.get('soil_1')
+    soil_2 = data.get('soil_2')
+    light = data.get('light')
+    battery_voltage = data.get('battery_voltage')
+    water_distance = data.get('water_distance')
+
     conn = sqlite3.connect('czujniki.db')
     c = conn.cursor()
     c.execute("""
         INSERT INTO czujniki (
-            temperature, humidity, water_level, soil_1, soil_2, light, battery
+            temperature, humidity, soil_1, soil_2, light, battery_voltage, water_distance
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
     """, (
-        data.get('temperature'),
-        data.get('humidity'),
-        data.get('water_level'),
-        data.get('soil_1'),
-        data.get('soil_2'),
-        data.get('light'),
-        data.get('battery')
+        temperature, humidity, soil_1, soil_2, light, battery_voltage, water_distance
     ))
     conn.commit()
     conn.close()
-    return {'status': 'ok'}, 200
+
+    return jsonify({'status': 'ok'}), 200
+
 
 @app.route('/api/latest')
 def latest_data():
-    row = get_data()[0] if get_data() else None
-    if row:
-        return jsonify({
-            'temperature': row[0],
-            'humidity': row[1],
-            'water_level': row[2],
-            'soil_1': row[3],
-            'soil_2': row[4],
-            'light': row[5],
-            'battery': row[6],
-            'timestamp': row[7]
-        })
-    return jsonify({})
+    """Zwraca najnowszy zapis z czujników (aktualne pola)."""
+    data = get_data()
+    if not data:
+        return jsonify({})
+
+    row = data[0]
+    return jsonify({
+        'temperature': row[0],
+        'humidity': row[1],
+        'water_distance': row[2],   # zmienione pole
+        'soil_1': row[3],
+        'soil_2': row[4],
+        'light': row[5],
+        'battery': calculate_battery_level(row[6]),  # obliczenie % z napięcia
+        'timestamp': row[7]
+    })
+
 
 @app.route('/api/table-data')
 def table_data():
+    """Zwraca zestaw danych do tabeli (ostatnie 20 pomiarów)."""
     rows = get_data()
     return jsonify([
         {
             'temperature': r[0],
             'humidity': r[1],
-            'water_level': r[2],
+            'water_distance': r[2],   # zmiana pola
             'soil_1': r[3],
             'soil_2': r[4],
             'light': r[5],
-            'battery': r[6],
+            'battery': calculate_battery_level(r[6]),  # przeliczenie na %
             'timestamp': r[7]
         } for r in rows
     ])
+
 
 @app.route('/api/chart-data')
 def chart_data():
