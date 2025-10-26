@@ -160,6 +160,24 @@
   </div>
   <div id="config-status" class="text-center text-gray-600 mt-3 text-sm italic"></div>
 </section>
+<section class="bg-white rounded-2xl shadow p-6">
+  <h2 class="text-xl font-semibold text-center mb-4">⚙️ Tryb pracy szklarni</h2>
+  <div class="flex justify-center gap-4 mb-4">
+    <button id="mode-auto" class="mode-btn bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Auto</button>
+    <button id="mode-manual" class="mode-btn bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600">Manual</button>
+    <button id="mode-off" class="mode-btn bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">Off</button>
+  </div>
+  <div id="mode-status" class="text-center text-gray-700 italic">Tryb: ładowanie...</div>
+</section>
+
+<section class="bg-emerald-50 rounded-2xl shadow p-6">
+  <h2 class="text-xl font-semibold text-center mb-4">💡 Sterowanie komponentami</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center" id="switches">
+    <!-- suwaki generowane dynamicznie -->
+  </div>
+  <div id="control-status" class="text-center text-sm text-gray-600 mt-3 italic"></div>
+</section>
+
 
   </main>
 
@@ -383,6 +401,91 @@
     setInterval(updateWeather, 600000);
     setInterval(loadGallery, 60000);
   });
+  
+  // --- Sterowanie szklarnią (tryby i stany) ---
+const CONTROL_ENDPOINT = "/api/control";
+let currentMode = "auto";
+const deviceList = ["roof", "valve_1", "valve_2", "light", "heater", "pump"];
+
+async function loadControlState() {
+  try {
+    const response = await fetch(CONTROL_ENDPOINT);
+    const state = await response.json();
+    currentMode = state.mode;
+    updateModeButtons();
+    updateSwitches(state);
+  } catch {
+    document.getElementById("mode-status").innerText = "❌ Błąd połączenia z API sterowania.";
+  }
+}
+
+function updateModeButtons() {
+  document.getElementById("mode-status").innerText = `Tryb: ${currentMode}`;
+  document.querySelectorAll(".mode-btn").forEach(btn => btn.classList.remove("ring", "ring-offset-2", "ring-green-500"));
+  document.getElementById(`mode-${currentMode}`).classList.add("ring", "ring-offset-2", "ring-green-500");
+}
+
+function updateSwitches(state) {
+  const container = document.getElementById("switches");
+  container.innerHTML = "";
+  deviceList.forEach(key => {
+    const checked = state[key] ? "checked" : "";
+    const disabled = currentMode !== "manual" ? "disabled" : "";
+    const labelMap = {
+      "roof": "🌤 Dach",
+      "valve_1": "🚰 Zawór 1",
+      "valve_2": "🚰 Zawór 2",
+      "light": "💡 Oświetlenie",
+      "heater": "🔥 Ogrzewanie",
+      "pump": "💧 Pompa"
+    };
+    container.innerHTML += `
+      <div class="bg-white rounded-xl shadow p-3 flex justify-between items-center">
+        <span>${labelMap[key]}</span>
+        <label class="inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="switch-${key}" class="sr-only" ${checked} ${disabled}>
+          <div class="w-11 h-6 bg-gray-300 rounded-full peer-focus:ring-4 peer-focus:ring-green-300 peer peer-checked:bg-green-600 relative">
+            <div class="absolute top-0.5 left-0.5 bg-white h-5 w-5 rounded-full transition-transform peer-checked:translate-x-5"></div>
+          </div>
+        </label>
+      </div>
+    `;
+  });
+
+  // Nasłuchiwanie kliknięć
+  deviceList.forEach(key => {
+    const el = document.getElementById(`switch-${key}`);
+    if (el && currentMode === "manual") {
+      el.addEventListener("change", () => sendControlUpdate({ [key]: el.checked }));
+    }
+  });
+}
+
+async function sendControlUpdate(update) {
+  try {
+    const response = await fetch(CONTROL_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update)
+    });
+    if (response.ok) {
+      document.getElementById("control-status").innerText = "✅ Zaktualizowano sterowanie.";
+      loadControlState();
+    }
+  } catch {
+    document.getElementById("control-status").innerText = "❌ Błąd aktualizacji sterowania.";
+  }
+}
+
+// Zmiana trybu
+document.getElementById("mode-auto").onclick = () => sendControlUpdate({ mode: "auto" });
+document.getElementById("mode-manual").onclick = () => sendControlUpdate({ mode: "manual" });
+document.getElementById("mode-off").onclick = () => sendControlUpdate({ mode: "off" });
+
+// Aktualizacja co 10s
+setInterval(loadControlState, 10000);
+loadControlState();
+
 </script>
 
 </body>

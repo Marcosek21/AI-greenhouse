@@ -31,6 +31,18 @@ DEFAULT_CONFIG = {
     "bucket_height": 30.0,      # cm
     "bucket_diameter": 25.0     # cm
 }
+
+CONTROL_FILE = "control_state.json"
+DEFAULT_CONTROL = {
+    "mode": "auto",  # auto | manual | off
+    "roof": False,
+    "valve_1": False,
+    "valve_2": False,
+    "light": False,
+    "heater": False,
+    "pump": False
+}
+
 app = Flask(__name__)
 CORS(app)
 
@@ -282,6 +294,52 @@ def update_config():
     save_config(config)
     return jsonify({"status": "ok", "message": "Konfiguracja zapisana pomyślnie."})
     
+    
+def load_control():
+    if not os.path.exists(CONTROL_FILE):
+        with open(CONTROL_FILE, "w") as f:
+            json.dump(DEFAULT_CONTROL, f, indent=2)
+        return DEFAULT_CONTROL
+    with open(CONTROL_FILE, "r") as f:
+        return json.load(f)
+
+def save_control(data):
+    with open(CONTROL_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+@app.route('/api/control', methods=['GET'])
+def get_control():
+    """Zwraca aktualny stan sterowania do szklarni (dla mikrokontrolera)."""
+    state = load_control()
+
+    # Zabezpieczenie: pompa wyłączona, jeśli któryś zawór otwarty
+    if state["valve_1"] or state["valve_2"]:
+        state["pump"] = False
+
+    return jsonify(state)
+
+@app.route('/api/control', methods=['POST'])
+def update_control():
+    """Aktualizuje stan sterowania lub tryb pracy (z panelu)."""
+    data = request.json
+    state = load_control()
+
+    # Zmiana trybu
+    if "mode" in data and data["mode"] in ["manual", "auto", "off"]:
+        state["mode"] = data["mode"]
+
+    # Zmiana stanu poszczególnych elementów
+    for key in ["roof", "valve_1", "valve_2", "light", "heater", "pump"]:
+        if key in data:
+            state[key] = bool(data[key])
+
+    # Zabezpieczenie – pompa wyłącza się, jeśli zawory otwarte
+    if state["valve_1"] or state["valve_2"]:
+        state["pump"] = False
+
+    save_control(state)
+    return jsonify({"status": "ok", "message": "Stan sterowania zaktualizowany."})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
 
