@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import zlib
 import binascii
 import math
+import json
 
 load_dotenv()
 UPLOAD_DIR = "uploads"
@@ -23,6 +24,13 @@ POZNAN_LON = 16.9252
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(TEMP_DIR, exist_ok=True)
 
+CONFIG_FILE = "config.json"
+
+# Domyślne wartości, jeśli plik nie istnieje
+DEFAULT_CONFIG = {
+    "bucket_height": 30.0,      # cm
+    "bucket_diameter": 25.0     # cm
+}
 app = Flask(__name__)
 CORS(app)
 
@@ -245,6 +253,35 @@ def get_weather():
     except Exception as e:
         return jsonify({"error": "Błąd pobierania danych pogodowych", "details": str(e)}), 500
 
+def load_config():
+    """Wczytuje konfigurację zbiornika z pliku JSON."""
+    if not os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(DEFAULT_CONFIG, f)
+        return DEFAULT_CONFIG
+    with open(CONFIG_FILE, "r") as f:
+        return json.load(f)
+
+def save_config(data):
+    """Zapisuje konfigurację zbiornika do pliku JSON."""
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+@app.route('/api/config', methods=['GET'])
+def get_config():
+    """Zwraca aktualną konfigurację pojemnika."""
+    return jsonify(load_config())
+
+@app.route('/api/config', methods=['POST'])
+def update_config():
+    """Aktualizuje konfigurację pojemnika (wysokość, średnica)."""
+    data = request.json
+    config = load_config()
+    config['bucket_height'] = float(data.get('bucket_height', config['bucket_height']))
+    config['bucket_diameter'] = float(data.get('bucket_diameter', config['bucket_diameter']))
+    save_config(config)
+    return jsonify({"status": "ok", "message": "Konfiguracja zapisana pomyślnie."})
+    
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
 
