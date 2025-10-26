@@ -1,26 +1,45 @@
 import requests
 import random
 import time
+import json
 
-URL = 'http://localhost:5000/api/data'  # Zmień na IP serwera, jeśli testujesz zdalnie
+API_URL = "http://127.0.0.1:5000/api/data"  # lub IP serwera, np. http://192.168.1.41:5000/api/data
 
-def losowe_dane():
+def generate_sensor_data():
+    """Generuje losowe dane symulujące pomiary czujników w szklarni."""
+    temperature = round(random.uniform(18.0, 28.0), 1)
+    humidity = round(random.uniform(45.0, 80.0), 1)
+    soil_1 = round(random.uniform(30.0, 60.0), 1)
+    soil_2 = round(random.uniform(25.0, 55.0), 1)
+    light = round(random.uniform(200, 800), 0)  # lux
+    battery_voltage = round(random.uniform(10.8, 12.6), 2)  # napięcie akumulatora
+    water_distance = round(random.uniform(5.0, 25.0), 1)  # cm – od czujnika do lustra wody
+
     return {
-        "temperature": round(random.uniform(18.0, 35.0), 1),     # °C
-        "humidity": round(random.uniform(30.0, 90.0), 1),        # %
-        "water_level": round(random.uniform(0.0, 100.0), 1),     # %
-        "soil_1": round(random.uniform(20.0, 60.0), 2),          # %
-        "soil_2": round(random.uniform(20.0, 60.0), 2),          # %
-        "light": round(random.uniform(1000, 50000), 2),          # lux
-        "battery": round(random.uniform(0.0, 100.0), 2)          # %
+        "temperature": temperature,
+        "humidity": humidity,
+        "soil_1": soil_1,
+        "soil_2": soil_2,
+        "light": light,
+        "battery_voltage": battery_voltage,
+        "water_distance": water_distance
     }
 
-while True:
-    dane = losowe_dane()
+def send_data():
+    """Wysyła dane do API /api/data."""
+    data = generate_sensor_data()
     try:
-        response = requests.post(URL, json=dane)
-        print(f"Wysłano: {dane} → Status: {response.status_code}")
-    except Exception as e:
-        print(f"Błąd wysyłania danych: {e}")
-    time.sleep(5)  # co 5 sekund
+        response = requests.post(API_URL, json=data, timeout=5)
+        if response.status_code == 200:
+            print(f"✅ Dane wysłane: {json.dumps(data)}")
+        else:
+            print(f"❌ Błąd: {response.status_code} - {response.text}")
+    except requests.exceptions.RequestException as e:
+        print(f"⚠️ Brak połączenia z serwerem: {e}")
 
+if __name__ == "__main__":
+    print("🌿 Symulacja szklarni – aktywna.")
+    print("Wysyłanie danych co 10 sekund... (Ctrl+C aby zakończyć)\n")
+    while True:
+        send_data()
+        time.sleep(10)
