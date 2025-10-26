@@ -273,7 +273,6 @@
     // ⚙️ Sekcja zasoby i czas
     document.getElementById('extra-column').innerHTML = `
       <div>📏 Odległość od lustra wody: ${data.water_level?.toFixed(1) ?? data.water_distance?.toFixed(1)} cm</div>
-      <div>🔋 Napięcie baterii: ${(data.battery_voltage ?? 0).toFixed(2)} V</div>
       <div>🔋 Szacowany poziom: ${(data.battery ?? 0).toFixed(0)} %</div>
       <div>🕒 Ostatni pomiar: ${localTime}</div>
     `;
