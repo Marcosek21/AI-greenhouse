@@ -78,7 +78,7 @@
               <th class="px-3 py-2 border">💧 Wilg. pow. (%)</th>
               <th class="px-3 py-2 border">🌱 Wilg. gleby doniczka 1 (%)</th>
               <th class="px-3 py-2 border">🌱 Wilg. gleby doniczka 2 (%)</th>
-              <th class="px-3 py-2 border">🚰 Poziom wody (%)</th>
+              <th class="px-3 py-2 border">📏 Odległość od lustra wody (cm)</th>
               <th class="px-3 py-2 border">💡 Natężenie światła (lux)</th>
               <th class="px-3 py-2 border">🔋 Bateria (%)</th>
               <th class="px-3 py-2 border">🕒 Czas</th>
@@ -109,7 +109,7 @@
   </div>
 
   <script>
-  // Aktualizacja zegara w nagłówku
+  // Aktualizacja zegara
   setInterval(() => {
     const now = new Date().toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' });
     document.getElementById('current-time').innerText = now;
@@ -166,7 +166,7 @@
           <td class='border px-2 py-1'>${row.humidity}</td>
           <td class='border px-2 py-1'>${row.soil_1}</td>
           <td class='border px-2 py-1'>${row.soil_2}</td>
-          <td class='border px-2 py-1'>${row.water_level}</td>
+          <td class='border px-2 py-1'>${row.water_distance}</td>
           <td class='border px-2 py-1'>${row.light}</td>
           <td class='border px-2 py-1'>${row.battery}</td>
           <td class='border px-2 py-1'>${localTime}</td>`;
@@ -185,10 +185,9 @@
       document.getElementById('soil-column').innerHTML = `
         <div>🌱 Wilg. gleby doniczka 1: ${data.soil_1} %</div>
         <div>🌱 Wilg. gleby doniczka 2: ${data.soil_2} %</div>`;
-      
       document.getElementById('extra-column').innerHTML = `
-        <div>🚰 Poziom wody: ${data.water_level} %</div>
-        <div>🔋 Bateria: ${data.battery} %</div>
+        <div>📏 Odległość od lustra wody: ${data.water_distance.toFixed(1)} cm</div>
+        <div>🔋 Bateria: ${data.battery.toFixed(0)} %</div>
         <div>🕒 ${localTime}</div>`;
     }
 
@@ -225,79 +224,5 @@
     setInterval(loadGallery, 60000);
   });
   </script>
-
-  <!-- Zakładka zaawansowana -->
-  <main id="advanced-tab" class="max-w-4xl mx-auto px-4 space-y-6 hidden">
-    <section class="bg-white rounded-2xl shadow p-6">
-      <h2 class="text-2xl font-semibold text-center mb-6">⚙️ Panel zaawansowany – Sterowanie szklarnią</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-
-        <div class="bg-green-50 rounded-xl p-4 shadow text-center">
-          <h3 class="font-semibold text-lg mb-3">🌤 Dach</h3>
-          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Otwórz</button>
-          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Zamknij</button>
-        </div>
-
-        <div class="bg-blue-50 rounded-xl p-4 shadow text-center">
-          <h3 class="font-semibold text-lg mb-3">🚰 Zawór 1</h3>
-          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Otwórz</button>
-          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Zamknij</button>
-        </div>
-
-        <div class="bg-blue-50 rounded-xl p-4 shadow text-center">
-          <h3 class="font-semibold text-lg mb-3">🚰 Zawór 2</h3>
-          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Otwórz</button>
-          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Zamknij</button>
-        </div>
-
-        <div class="bg-yellow-50 rounded-xl p-4 shadow text-center">
-          <h3 class="font-semibold text-lg mb-3">💡 Oświetlenie</h3>
-          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Włącz</button>
-          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Wyłącz</button>
-        </div>
-
-        <div class="bg-orange-50 rounded-xl p-4 shadow text-center">
-          <h3 class="font-semibold text-lg mb-3">🔥 Ogrzewanie</h3>
-          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Włącz</button>
-          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Wyłącz</button>
-        </div>
-
-        <div class="bg-emerald-50 rounded-xl p-4 shadow text-center">
-          <h3 class="font-semibold text-lg mb-3">💧 Pompa</h3>
-          <button class="bg-blue-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-blue-700">Uruchom na 10s</button>
-        </div>
-
-      </div>
-    </section>
-  </main>
-
-  <script>
-  // Logika przełączania zakładek
-  document.addEventListener('DOMContentLoaded', () => {
-    const homeTab = document.getElementById('home-tab');
-    const advTab = document.getElementById('advanced-tab');
-    const btnHome = document.getElementById('tab-home');
-    const btnAdv = document.getElementById('tab-advanced');
-
-    btnHome.addEventListener('click', () => {
-      homeTab.classList.remove('hidden');
-      advTab.classList.add('hidden');
-      btnHome.classList.add('bg-green-600', 'text-white');
-      btnHome.classList.remove('bg-gray-200', 'text-gray-800');
-      btnAdv.classList.add('bg-gray-200', 'text-gray-800');
-      btnAdv.classList.remove('bg-green-600', 'text-white');
-    });
-
-    btnAdv.addEventListener('click', () => {
-      advTab.classList.remove('hidden');
-      homeTab.classList.add('hidden');
-      btnAdv.classList.add('bg-green-600', 'text-white');
-      btnAdv.classList.remove('bg-gray-200', 'text-gray-800');
-      btnHome.classList.add('bg-gray-200', 'text-gray-800');
-      btnHome.classList.remove('bg-green-600', 'text-white');
-    });
-  });
-  </script>
 </body>
 </html>
-
