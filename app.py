@@ -5,12 +5,14 @@ import sqlite3
 import requests
 import base64
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
 UPLOAD_DIR = "uploads"
 TEMP_DIR = "temp_parts"
 
 # 🌦️ Konfiguracja API pogodowego
-OPENWEATHER_API_KEY = "e9d7a75939071d2b14dc0a0c1e3c61b4"
+OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 POZNAN_LAT = 52.4064
 POZNAN_LON = 16.9252
 
