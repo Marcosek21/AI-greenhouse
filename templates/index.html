@@ -31,7 +31,7 @@
     </div>
   </div>
 
-  <!-- Główna zakładka -->
+  <!-- Zakładka główna -->
   <main id="home-tab" class="max-w-7xl mx-auto px-4 space-y-6">
 
     <!-- Weather and Status -->
@@ -104,7 +104,44 @@
   <main id="advanced-tab" class="max-w-4xl mx-auto px-4 space-y-6 hidden">
     <section class="bg-white rounded-2xl shadow p-6">
       <h2 class="text-2xl font-semibold text-center mb-6">⚙️ Panel zaawansowany – Sterowanie szklarnią</h2>
-      <div class="text-center text-gray-500 italic">Funkcje zaawansowane będą wkrótce dostępne...</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+        <div class="bg-green-50 rounded-xl p-4 shadow text-center">
+          <h3 class="font-semibold text-lg mb-3">🌤 Dach</h3>
+          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Otwórz</button>
+          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Zamknij</button>
+        </div>
+
+        <div class="bg-blue-50 rounded-xl p-4 shadow text-center">
+          <h3 class="font-semibold text-lg mb-3">🚰 Zawór 1</h3>
+          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Otwórz</button>
+          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Zamknij</button>
+        </div>
+
+        <div class="bg-blue-50 rounded-xl p-4 shadow text-center">
+          <h3 class="font-semibold text-lg mb-3">🚰 Zawór 2</h3>
+          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Otwórz</button>
+          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Zamknij</button>
+        </div>
+
+        <div class="bg-yellow-50 rounded-xl p-4 shadow text-center">
+          <h3 class="font-semibold text-lg mb-3">💡 Oświetlenie</h3>
+          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Włącz</button>
+          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Wyłącz</button>
+        </div>
+
+        <div class="bg-orange-50 rounded-xl p-4 shadow text-center">
+          <h3 class="font-semibold text-lg mb-3">🔥 Ogrzewanie</h3>
+          <button class="bg-green-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-green-700">Włącz</button>
+          <button class="bg-red-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-red-700">Wyłącz</button>
+        </div>
+
+        <div class="bg-emerald-50 rounded-xl p-4 shadow text-center">
+          <h3 class="font-semibold text-lg mb-3">💧 Pompa</h3>
+          <button class="bg-blue-600 text-white px-3 py-1 rounded-lg m-1 hover:bg-blue-700">Uruchom na 10s</button>
+        </div>
+
+      </div>
     </section>
   </main>
 
@@ -118,7 +155,6 @@
   </div>
 
   <script>
-  // Aktualizacja zegara
   setInterval(() => {
     const now = new Date().toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' });
     document.getElementById('current-time').innerText = now;
