@@ -31,6 +31,7 @@
     </div>
   </div>
 
+  <!-- Główna zakładka -->
   <main id="home-tab" class="max-w-7xl mx-auto px-4 space-y-6">
 
     <!-- Weather and Status -->
@@ -47,7 +48,7 @@
 
       <div class="bg-emerald-50 rounded-2xl shadow p-4">
         <h2 class="font-semibold text-lg mb-2 text-center">⚙️ Zasoby i czas</h2>
-        <div id="extra-column" class="space-y-1 text-center"></div>
+        <div id="extra-column" class="space-y-1 text-center text-gray-500 italic">Dane w przygotowaniu...</div>
       </div>
     </section>
 
@@ -76,10 +77,10 @@
             <tr>
               <th class="px-3 py-2 border">🌡️ Temp (°C)</th>
               <th class="px-3 py-2 border">💧 Wilg. pow. (%)</th>
-              <th class="px-3 py-2 border">🌱 Wilg. gleby doniczka 1 (%)</th>
-              <th class="px-3 py-2 border">🌱 Wilg. gleby doniczka 2 (%)</th>
+              <th class="px-3 py-2 border">🌱 Wilg. gleby 1 (%)</th>
+              <th class="px-3 py-2 border">🌱 Wilg. gleby 2 (%)</th>
               <th class="px-3 py-2 border">📏 Odległość od lustra wody (cm)</th>
-              <th class="px-3 py-2 border">💡 Natężenie światła (lux)</th>
+              <th class="px-3 py-2 border">💡 Światło (lux)</th>
               <th class="px-3 py-2 border">🔋 Bateria (%)</th>
               <th class="px-3 py-2 border">🕒 Czas</th>
             </tr>
@@ -96,6 +97,14 @@
         <button onclick="loadGallery()" class="bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700">Odśwież</button>
       </div>
       <div id="gallery" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+    </section>
+  </main>
+
+  <!-- Zakładka zaawansowana -->
+  <main id="advanced-tab" class="max-w-4xl mx-auto px-4 space-y-6 hidden">
+    <section class="bg-white rounded-2xl shadow p-6">
+      <h2 class="text-2xl font-semibold text-center mb-6">⚙️ Panel zaawansowany – Sterowanie szklarnią</h2>
+      <div class="text-center text-gray-500 italic">Funkcje zaawansowane będą wkrótce dostępne...</div>
     </section>
   </main>
 
@@ -183,12 +192,8 @@
         <div>💧 Wilgotność: ${data.humidity} %</div>
         <div>💡 Natężenie światła: ${data.light} lux</div>`;
       document.getElementById('soil-column').innerHTML = `
-        <div>🌱 Wilg. gleby doniczka 1: ${data.soil_1} %</div>
-        <div>🌱 Wilg. gleby doniczka 2: ${data.soil_2} %</div>`;
-      document.getElementById('extra-column').innerHTML = `
-        <div>📏 Odległość od lustra wody: ${data.water_distance.toFixed(1)} cm</div>
-        <div>🔋 Bateria: ${data.battery.toFixed(0)} %</div>
-        <div>🕒 ${localTime}</div>`;
+        <div>🌱 Wilg. gleby 1: ${data.soil_1} %</div>
+        <div>🌱 Wilg. gleby 2: ${data.soil_2} %</div>`;
     }
 
     async function loadGallery() {
@@ -206,6 +211,7 @@
       });
     }
 
+    // Modal
     window.openModal = (src, title) => {
       const modal = document.getElementById('photo-modal');
       document.getElementById('modal-img').src = src;
@@ -213,11 +219,35 @@
       modal.classList.remove('hidden');
       modal.classList.add('flex');
     };
-
     document.getElementById('close-btn').onclick = () => {
       document.getElementById('photo-modal').classList.add('hidden');
     };
 
+    // Logika zakładek
+    const homeTab = document.getElementById('home-tab');
+    const advTab = document.getElementById('advanced-tab');
+    const btnHome = document.getElementById('tab-home');
+    const btnAdv = document.getElementById('tab-advanced');
+
+    btnHome.addEventListener('click', () => {
+      homeTab.classList.remove('hidden');
+      advTab.classList.add('hidden');
+      btnHome.classList.add('bg-green-600', 'text-white');
+      btnHome.classList.remove('bg-gray-200', 'text-gray-800');
+      btnAdv.classList.add('bg-gray-200', 'text-gray-800');
+      btnAdv.classList.remove('bg-green-600', 'text-white');
+    });
+
+    btnAdv.addEventListener('click', () => {
+      advTab.classList.remove('hidden');
+      homeTab.classList.add('hidden');
+      btnAdv.classList.add('bg-green-600', 'text-white');
+      btnAdv.classList.remove('bg-gray-200', 'text-gray-800');
+      btnHome.classList.add('bg-gray-200', 'text-gray-800');
+      btnHome.classList.remove('bg-green-600', 'text-white');
+    });
+
+    // Startowe aktualizacje
     updateWeather(); updateChart(); updateTable(); updateLatest(); loadGallery();
     setInterval(() => { updateChart(); updateTable(); updateLatest(); }, 5000);
     setInterval(updateWeather, 600000);
