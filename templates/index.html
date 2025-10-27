@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<style>
+  .switch{position:relative;display:inline-block;width:44px;height:24px}
+  .switch input{position:absolute;opacity:0;width:0;height:0}
+  .switch .slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:9999px;transition:background .2s ease}
+  .switch .slider::before{content:"";position:absolute;height:20px;width:20px;left:2px;top:2px;background:#fff;border-radius:9999px;transition:transform .2s ease}
+  .switch input:checked + .slider{background:#16a34a}
+  .switch input:checked + .slider::before{transform:translateX(20px)}
+  .switch input:disabled + .slider{opacity:.6;cursor:not-allowed}
+</style>
+
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍃</text></svg>">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -375,6 +385,7 @@
     function updateSwitches(state) {
   const container = document.getElementById("switches");
   container.innerHTML = "";
+
   const labelMap = {
     "roof": "🌤 Dach",
     "valve_1": "🚰 Zawór 1",
@@ -388,21 +399,18 @@
     const checked = state[key] ? "checked" : "";
     const disabled = currentMode !== "manual" ? "disabled" : "";
 
-    // ZMIANY SĄ W TYM FRAGMENCIE:
     container.innerHTML += `
       <div class="bg-white rounded-xl shadow p-3 flex justify-between items-center">
-        <span>${labelMap[key]}</span>
-        <label class="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" id="switch-${key}" class="sr-only peer" ${checked} ${disabled}>
-          <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer-checked:bg-green-600 transition">
-            <div class="absolute top-0.5 left-0.5 bg-white h-5 w-5 rounded-full transition transform peer-checked:translate-x-5"></div>
-          </div>
+        <span class="flex items-center gap-2">${labelMap[key]}</span>
+        <label class="switch">
+          <input type="checkbox" id="switch-${key}" ${checked} ${disabled}>
+          <span class="slider"></span>
         </label>
       </div>
     `;
-    // ZMIENIONO 'transition-all' na 'transition' w obu divach suwaka
   });
 
+  // Nasłuchiwanie zmian (tylko w trybie manual)
   deviceList.forEach(key => {
     const el = document.getElementById(`switch-${key}`);
     if (el && currentMode === "manual") {
@@ -410,6 +418,7 @@
     }
   });
 }
+
 
 
     async function sendControlUpdate(update) {
