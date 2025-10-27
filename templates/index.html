@@ -388,17 +388,19 @@
     const checked = state[key] ? "checked" : "";
     const disabled = currentMode !== "manual" ? "disabled" : "";
 
+    // ZMIANY SĄ W TYM FRAGMENCIE:
     container.innerHTML += `
       <div class="bg-white rounded-xl shadow p-3 flex justify-between items-center">
         <span>${labelMap[key]}</span>
         <label class="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" id="switch-${key}" class="sr-only peer" ${checked} ${disabled}>
-          <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer-checked:bg-green-600 transition-all">
-            <div class="absolute top-0.5 left-0.5 bg-white h-5 w-5 rounded-full transition-all transform peer-checked:translate-x-5"></div>
+          <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer-checked:bg-green-600 transition">
+            <div class="absolute top-0.5 left-0.5 bg-white h-5 w-5 rounded-full transition transform peer-checked:translate-x-5"></div>
           </div>
         </label>
       </div>
     `;
+    // ZMIENIONO 'transition-all' na 'transition' w obu divach suwaka
   });
 
   deviceList.forEach(key => {
