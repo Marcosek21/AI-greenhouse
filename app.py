@@ -334,7 +334,7 @@ def get_control():
 
     # --- OBSŁUGA ONE-SHOT POMPY ---
     # Jeśli pompa jest ustawiona na true i nie była jeszcze odebrana przez szklarnię
-    if state["pump"] and not state("pump_ack"):
+    if state["pump"] and not state["pump_ack"]:
         # Pierwsze wysłanie TRUE — po wysłaniu ustawiamy ack
         state["pump_ack"] = True
         save_control(state)
