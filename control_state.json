@@ -1,0 +1,9 @@
+{
+  "mode": "manual",
+  "roof": false,
+  "valve_1": false,
+  "valve_2": false,
+  "light": true,
+  "heater": false,
+  "pump": false
+}

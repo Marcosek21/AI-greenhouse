@@ -313,7 +313,7 @@ def get_control():
     state = load_control()
 
     # Zabezpieczenie: pompa wyłączona, jeśli któryś zawór otwarty
-    if state["valve_1"] or state["valve_2"]:
+    if not state["valve_1"] and not state["valve_2"]:
         state["pump"] = False
 
     return jsonify(state)
@@ -334,7 +334,7 @@ def update_control():
             state[key] = bool(data[key])
 
     # Zabezpieczenie – pompa wyłącza się, jeśli zawory otwarte
-    if state["valve_1"] or state["valve_2"]:
+    if not state["valve_1"] and not state["valve_2"]:
         state["pump"] = False
 
     save_control(state)
