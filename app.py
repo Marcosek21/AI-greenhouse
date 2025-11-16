@@ -75,6 +75,10 @@ def get_data():
     conn.close()
     return rows
 
+def save_control(data):
+    with open(CONTROL_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
 
 @app.route('/')
 def index():
