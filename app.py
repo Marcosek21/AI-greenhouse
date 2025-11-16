@@ -328,27 +328,31 @@ def get_control_for_web():
 
 @app.route('/api/control-device', methods=['GET'])
 def get_control_for_device():
-    """Stan sterowania dla szklarni (z ACK one-shot)."""
+    """Stan sterowania dla szklarni (z natychmiastowym resetem pompy, ale bez blokowania kolejnych cykli)."""
+
     state = load_control()
 
-    # Zabezpieczenie – pompa wyłączona gdy oba zawory zamknięte
+    # Zabezpieczenie – pompa wyłączona tylko jeśli oba zawory są zamknięte
     if not state["valve_1"] and not state["valve_2"]:
         state["pump"] = False
 
+    # Tworzymy kopię, która zostanie zwrócona do szklarni
     response_state = state.copy()
 
-    # Pierwsze pobranie → ustaw ACK
-    if state["pump"] and not state["pump_ack"]:
-        state["pump_ack"] = True
-        save_control(state)
-
-    # Kolejne pobranie po ACK → reset pompy
-    elif state["pump"] and state["pump_ack"]:
+    # LOGIKA ONE-SHOT POMPY:
+    # Jeżeli strona WWW ustawiła pompę na True:
+    if state["pump"] is True:
+        # Szklarnia przy tym GET zobaczy pump=True
+        # Ale natychmiast resetujemy stan pompy, żeby kolejny cykl działał poprawnie
         state["pump"] = False
-        state["pump_ack"] = False
+
+        # ACK sygnalizuje, że pompa została odebrana przez szklarnię
+        state["pump_ack"] = True
+
         save_control(state)
 
     return jsonify(response_state)
+
 
 @app.route('/api/control', methods=['POST'])
 def update_control():
