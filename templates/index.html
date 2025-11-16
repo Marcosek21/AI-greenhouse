@@ -349,8 +349,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       document.getElementById('extra-column').innerHTML = `
         <div>📏 Odległość: ${data.water_distance} m</div>
-        <div>🔋 Napięcie: ${data.battery_voltage?.toFixed(2) ?? "—"} V</div>
+        <div>🔋 Bateria: ${data.battery?.toFixed(0) ?? "—"} % (${data.battery_voltage?.toFixed(2) ?? "—"} V)</div>
         <div>🕒 Ostatni pomiar: ${time}</div>
+      `;
+
       `;
 
     } catch {
