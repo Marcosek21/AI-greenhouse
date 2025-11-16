@@ -40,7 +40,9 @@ DEFAULT_CONTROL = {
     "valve_2": False,
     "light": False,
     "heater": False,
-    "pump": False
+    "pump": False, #stan zadany pompy
+    "pump_ack": False,  # czy szklarnia odebrała TRUE
+    "pump_work_time":10 #czas pracy pompy w sekundach
 }
 
 app = Flask(__name__)
@@ -122,6 +124,7 @@ def latest_data():
         'soil_1': row[3],
         'soil_2': row[4],
         'light': row[5],
+        'battery_voltage': row[6],
         'battery': calculate_battery_level(row[6]),  # obliczenie % z napięcia
         'timestamp': row[7]
     })
@@ -139,6 +142,7 @@ def table_data():
             'soil_1': r[3],
             'soil_2': r[4],
             'light': r[5],
+            'battery_voltage': r[6],
             'battery': calculate_battery_level(r[6]),  # przeliczenie na %
             'timestamp': r[7]
         } for r in rows
@@ -300,45 +304,79 @@ def load_control():
         with open(CONTROL_FILE, "w") as f:
             json.dump(DEFAULT_CONTROL, f, indent=2)
         return DEFAULT_CONTROL
-    with open(CONTROL_FILE, "r") as f:
-        return json.load(f)
 
-def save_control(data):
-    with open(CONTROL_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+    with open(CONTROL_FILE, "r") as f:
+        state = json.load(f)
+
+    # DODAJEMY BRAKUJĄCE KLUCZE
+    for key, value in DEFAULT_CONTROL.items():
+        if key not in state:
+            state[key] = value
+
+    return state
+
 
 @app.route('/api/control', methods=['GET'])
 def get_control():
     """Zwraca aktualny stan sterowania do szklarni (dla mikrokontrolera)."""
     state = load_control()
 
-    # Zabezpieczenie: pompa wyłączona, jeśli któryś zawór otwarty
+    # --- ZABEZPIECZENIE POMPY ---
+    # Pompa może działać jeśli przynajmniej jeden zawór jest otwarty
     if not state["valve_1"] and not state["valve_2"]:
         state["pump"] = False
 
-    return jsonify(state)
+    response_state = state.copy()
+
+    # --- OBSŁUGA ONE-SHOT POMPY ---
+    # Jeśli pompa jest ustawiona na true i nie była jeszcze odebrana przez szklarnię
+    if state["pump"] and not state("pump_ack"):
+        # Pierwsze wysłanie TRUE — po wysłaniu ustawiamy ack
+        state["pump_ack"] = True
+        save_control(state)
+
+    # Jeśli pompa TRUE została odebrana wcześniej
+    elif state["pump_ack"] and state["pump"]:
+        # To znaczy, że dziś jest pierwsze pobranie z TRUE
+        # — resetujemy pompę i ack
+        state["pump"] = False
+        state["pump_ack"] = False
+        save_control(state)
+
+    return jsonify(response_state)
+
 
 @app.route('/api/control', methods=['POST'])
 def update_control():
-    """Aktualizuje stan sterowania lub tryb pracy (z panelu)."""
     data = request.json
     state = load_control()
 
-    # Zmiana trybu
     if "mode" in data and data["mode"] in ["manual", "auto", "off"]:
         state["mode"] = data["mode"]
 
-    # Zmiana stanu poszczególnych elementów
-    for key in ["roof", "valve_1", "valve_2", "light", "heater", "pump"]:
+    for key in ["roof", "valve_1", "valve_2", "light", "heater"]:
         if key in data:
             state[key] = bool(data[key])
 
-    # Zabezpieczenie – pompa wyłącza się, jeśli zawory otwarte
+    # Ustawienie pompy (one-shot)
+    if "pump" in data:
+        if data["pump"]:
+            state["pump"] = True
+            state["pump_ack"] = False  # czeka na odebranie przez szklarnię
+        else:
+            state["pump"] = False
+            state["pump_ack"] = False
+
+    if "pump_work_time" in data:
+        state["pump_work_time"] = int(data["pump_work_time"])
+
+    # Zabezpieczenie pompy — wyłącza się tylko gdy oba zawory zamknięte
     if not state["valve_1"] and not state["valve_2"]:
         state["pump"] = False
 
     save_control(state)
     return jsonify({"status": "ok", "message": "Stan sterowania zaktualizowany."})
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
