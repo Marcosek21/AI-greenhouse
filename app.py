@@ -214,54 +214,90 @@ def chart_data():
 
 @app.route('/api/upload', methods=['POST'])
 def upload_image_part():
-    """Odbiera fragmenty Base64, weryfikuje CRC i składa plik JPG."""
-    data = request.json or {}
-    filename = data.get('filename')
-    part = data.get('part')
-    total_parts = data.get('total_parts')
-    encoded_data = data.get('data')
-    crc_sent = data.get('crc32')
+    """
+    Odbiera fragmenty Base64, składa je po otrzymaniu 'done': 1
+    Nowy format nie używa już total_parts.
+    """
+    data = request.json
 
-    if not all([filename, part, total_parts, encoded_data]) or crc_sent is None:
-        return jsonify({'status': 'error', 'message': 'Missing data'}), 400
+    # Jeśli potwierdzenie zakończenia wysyłania
+    if data.get("done") == 1:
 
-    clean_data = str(encoded_data).strip().replace("\n", "").replace("\r", "")
+        filename = data.get("filename")
+
+        # filename jest wymagane!
+        if not filename or not isinstance(filename, str):
+            return jsonify({
+                "status": "error",
+                "message": "Missing or invalid filename for done=1"
+            }), 400
+
+        # znajdź wszystkie części dla tego konkretnego pliku
+        parts = [
+            f for f in os.listdir(TEMP_DIR)
+            if f.startswith(filename) and ".part" in f
+        ]
+
+        if not parts:
+            return jsonify({
+                "status": "error",
+                "message": "No parts found for given filename"
+            }), 400
+
+        output_path = os.path.join(UPLOAD_DIR, filename)
+        print(f"🛠 Składanie pliku: {output_path}")
+
+        with open(output_path, "wb") as out:
+            for part_name in sorted(
+                    parts,
+                    key=lambda n: int(n.split("part")[1])
+            ):
+                part_path = os.path.join(TEMP_DIR, part_name)
+                with open(part_path, "rb") as f:
+                    encoded_chunk = f.read().decode("utf-8").strip()
+
+                    missing_padding = len(encoded_chunk) % 4
+                    if missing_padding:
+                        encoded_chunk += "=" * (4 - missing_padding)
+
+                    out.write(base64.b64decode(encoded_chunk))
+
+                os.remove(part_path)
+
+        print(f"✅ Złożono plik: {output_path}")
+
+        return jsonify({
+            "status": "done",
+            "file": f"/uploads/{filename}"
+        }), 200
+
+    # ---- ODBIÓR NORMALNYCH FRAGMENTÓW ----
+
+    filename = data.get("filename")
+    part = data.get("part")
+    encoded_data = data.get("data")
+    crc_sent = data.get("crc32")
+
+    # Walidacja fragmentu
+    if not all([filename, part, encoded_data, crc_sent is not None]):
+        return jsonify({"status": "error", "message": "Missing required fields"}), 400
+
+    clean_data = encoded_data.strip().replace("\n", "").replace("\r", "")
     crc_calc = zlib.crc32(clean_data.encode("utf-8")) & 0xFFFFFFFF
 
     if crc_calc != int(crc_sent):
-        print(f"❌ CRC mismatch for part {part}/{total_parts} of {filename}")
-        return jsonify({
-            'status': 'error',
-            'part': part,
-            'message': f'CRC mismatch (sent={crc_sent}, calc={crc_calc})'
-        }), 400
+        print(f"❌ CRC mismatch for part {part} of {filename}")
+        return jsonify({"status": "error", "message": "CRC mismatch"}), 400
 
-    part_path = os.path.join(TEMP_DIR, f"{filename}.part{part}")
-    with open(part_path, "wb") as f:
+    # Zapis fragmentu
+    part_file = os.path.join(TEMP_DIR, f"{filename}.part{part}")
+    with open(part_file, "wb") as f:
         f.write(clean_data.encode("utf-8"))
 
-    print(f"📦 Received part {part}/{total_parts} for {filename} (CRC OK)")
+    print(f"📦 Otrzymano fragment {part} pliku {filename} (CRC OK)")
 
-    if int(part) == int(total_parts):
-        output_file = os.path.join(UPLOAD_DIR, filename)
-        with open(output_file, "wb") as out:
-            for i in range(1, int(total_parts) + 1):
-                part_path = os.path.join(TEMP_DIR, f"{filename}.part{i}")
-                with open(part_path, "rb") as p:
-                    part_data = p.read().decode("utf-8").strip()
-                    missing_padding = len(part_data) % 4
-                    if missing_padding:
-                        part_data += "=" * (4 - missing_padding)
-                    out.write(base64.b64decode(part_data))
-                os.remove(part_path)
-        print(f"✅ File assembled successfully: {output_file}")
-        return jsonify({'status': 'done', 'file': f"/uploads/{filename}"}), 200
+    return jsonify({"status": "ok", "message": "Part received"}), 200
 
-    return jsonify({
-        'status': 'ok',
-        'part': part,
-        'message': 'CRC OK, part received'
-    }), 200
 
 
 @app.route('/uploads/<path:filename>')
