@@ -514,41 +514,22 @@ def get_control_for_device():
 
 @app.route('/api/auto-mode-parameters', methods=['POST'])
 def auto_mode_parameters():
-    """Przekazuje ustawienia do szklarni (mikrokontrolera) dla trybu auto."""
     data = request.json
-
-    # Walidacja - sprawdź, czy wszystkie dane są dostępne
+    # Check if all required fields are provided
     required_fields = [
         "heater_temp_min", "heater_temp_max", "light_min_lux", "light_max_lux",
         "roof_open_temp", "roof_close_temp", "soil_min_moisture", "soil_max_moisture",
         "water_critical_distance", "battery_critical_level"
     ]
-
-    # Jeśli brakuje jakiegoś kluczowego parametru
     missing_fields = [field for field in required_fields if field not in data]
     if missing_fields:
         return jsonify({"status": "error", "message": f"Missing fields: {', '.join(missing_fields)}"}), 400
-
-    # Ładowanie aktualnych ustawień
+    # Process data and save it
     state = load_control()
-
-    # Zaktualizowanie stanu kontrolera na podstawie danych
-    state["heater_temp_min"] = float(data["heater_temp_min"])
-    state["heater_temp_max"] = float(data["heater_temp_max"])
-    state["light_min_lux"] = float(data["light_min_lux"])
-    state["light_max_lux"] = float(data["light_max_lux"])
-    state["roof_open_temp"] = float(data["roof_open_temp"])
-    state["roof_close_temp"] = float(data["roof_close_temp"])
-    state["soil_min_moisture"] = float(data["soil_min_moisture"])
-    state["soil_max_moisture"] = float(data["soil_max_moisture"])
-    state["water_critical_distance"] = float(data["water_critical_distance"])
-    state["battery_critical_level"] = float(data["battery_critical_level"])
-
-    # Zapisujemy do pliku
+    state.update(data)
     save_control(state)
-
-    # Potwierdzenie
     return jsonify({"status": "ok", "message": "Auto mode parameters updated."})
+
 
 @app.route('/api/auto-mode-parameters', methods=['GET'])
 def get_auto_mode_parameters():
