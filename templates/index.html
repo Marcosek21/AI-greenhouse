@@ -1057,6 +1057,38 @@
   }
 }
 
+async function loadAutoModeParameters() {
+  try {
+    const response = await fetch("/api/auto-mode-parameters", {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+
+      // Przypisanie pobranych wartości do odpowiednich inputów
+      document.getElementById("heater-temp-min").value = data.heater_temp_min;
+      document.getElementById("heater-temp-max").value = data.heater_temp_max;
+      document.getElementById("light-min-lux").value = data.light_min_lux;
+      document.getElementById("light-max-lux").value = data.light_max_lux;
+      document.getElementById("roof-open-temp").value = data.roof_open_temp;
+      document.getElementById("roof-close-temp").value = data.roof_close_temp;
+      document.getElementById("soil-min-moisture").value = data.soil_min_moisture;
+      document.getElementById("soil-max-moisture").value = data.soil_max_moisture;
+      document.getElementById("water-critical-distance").value = data.water_critical_distance;
+      document.getElementById("battery-critical-level").value = data.battery_critical_level;
+    }
+  } catch (error) {
+    console.error("Błąd pobierania ustawień:", error);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadAutoModeParameters();  // Ładowanie ustawionych parametrów przy starcie strony
+});
+
+
       // --- Startowe aktualizacje ---
       updateWeather();
       updateChart();

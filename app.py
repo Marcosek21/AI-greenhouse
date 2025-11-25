@@ -550,6 +550,26 @@ def auto_mode_parameters():
     # Potwierdzenie
     return jsonify({"status": "ok", "message": "Auto mode parameters updated."})
 
+@app.route('/api/auto-mode-parameters', methods=['GET'])
+def get_auto_mode_parameters():
+    """Zwraca aktualne parametry ustawione w systemie."""
+    # Ładujemy aktualne ustawienia z kontrolera
+    state = load_control()
+
+    # Zwracamy parametry, które zostały zapisane w systemie
+    return jsonify({
+        "heater_temp_min": state.get("heater_temp_min", 18.0),
+        "heater_temp_max": state.get("heater_temp_max", 22.0),
+        "light_min_lux": state.get("light_min_lux", 200),
+        "light_max_lux": state.get("light_max_lux", 1500),
+        "roof_open_temp": state.get("roof_open_temp", 25.0),
+        "roof_close_temp": state.get("roof_close_temp", 15.0),
+        "soil_min_moisture": state.get("soil_min_moisture", 30.0),
+        "soil_max_moisture": state.get("soil_max_moisture", 60.0),
+        "water_critical_distance": state.get("water_critical_distance", 0.5),
+        "battery_critical_level": state.get("battery_critical_level", 11.5)
+    })
+
 
 # =================== MAIN ===================
 
