@@ -285,9 +285,12 @@
         ></div>
       </section>
 	  
-	  <section class="bg-white rounded-2xl shadow p-6 mb-6">
+	  
+
+    </section>
+	<section class="bg-white rounded-2xl shadow p-6 mb-6">
   <h2 class="text-xl font-semibold text-center mb-4">⚙️ Ustawienia sterowania szklarnią</h2>
-  <div class="flex flex-col sm:flex-row justify-center gap-4 items-center">
+  <div class="flex flex-col justify-center gap-4 items-center">
     <div>
       <label class="block mb-1 font-medium">Temperatura minimalna (grzanie) [°C]:</label>
       <input
@@ -388,7 +391,6 @@
   </div>
 </section>
 
-    </section>
   </main>
 
   <!-- Modal -->
@@ -1030,33 +1032,8 @@
           await sendControlUpdate({ pump: true });
         };
       }
-	async function saveAutoModeParameters() {
-  const data = {
-    heater_temp_min: parseFloat(document.getElementById("heater-temp-min").value),
-    heater_temp_max: parseFloat(document.getElementById("heater-temp-max").value),
-    light_min_lux: parseFloat(document.getElementById("light-min-lux").value),
-    light_max_lux: parseFloat(document.getElementById("light-max-lux").value),
-    roof_open_temp: parseFloat(document.getElementById("roof-open-temp").value),
-    roof_close_temp: parseFloat(document.getElementById("roof-close-temp").value),
-    soil_min_moisture: parseFloat(document.getElementById("soil-min-moisture").value),
-    soil_max_moisture: parseFloat(document.getElementById("soil-max-moisture").value),
-    water_critical_distance: parseFloat(document.getElementById("water-critical-distance").value),
-    battery_critical_level: parseFloat(document.getElementById("battery-critical-level").value),
-  };
 
-  const response = await fetch("/api/auto-mode-parameters", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-
-  if (response.ok) {
-    alert("Ustawienia zapisane!");
-  } else {
-    alert("Błąd zapisywania ustawień.");
-  }
-}
-
+// Funkcja do pobierania ustawień i wyświetlania ich w formularzu
 async function loadAutoModeParameters() {
   try {
     const response = await fetch("/api/auto-mode-parameters", {
@@ -1084,9 +1061,36 @@ async function loadAutoModeParameters() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  loadAutoModeParameters();  // Ładowanie ustawionych parametrów przy starcie strony
-});
+// Funkcja do zapisywania ustawionych parametrów
+async function saveAutoModeParameters() {
+  const data = {
+    heater_temp_min: parseFloat(document.getElementById("heater-temp-min").value),
+    heater_temp_max: parseFloat(document.getElementById("heater-temp-max").value),
+    light_min_lux: parseFloat(document.getElementById("light-min-lux").value),
+    light_max_lux: parseFloat(document.getElementById("light-max-lux").value),
+    roof_open_temp: parseFloat(document.getElementById("roof-open-temp").value),
+    roof_close_temp: parseFloat(document.getElementById("roof-close-temp").value),
+    soil_min_moisture: parseFloat(document.getElementById("soil-min-moisture").value),
+    soil_max_moisture: parseFloat(document.getElementById("soil-max-moisture").value),
+    water_critical_distance: parseFloat(document.getElementById("water-critical-distance").value),
+    battery_critical_level: parseFloat(document.getElementById("battery-critical-level").value),
+  };
+
+  const response = await fetch("/api/auto-mode-parameters", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (response.ok) {
+    alert("Ustawienia zapisane!");
+  } else {
+    alert("Błąd zapisywania ustawień.");
+  }
+}
+
+// Załaduj ustawienia na stronie
+document.addEventListener("DOMContentLoaded", loadAutoModeParameters);
 
 
       // --- Startowe aktualizacje ---
