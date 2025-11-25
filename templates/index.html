@@ -1089,8 +1089,6 @@ async function saveAutoModeParameters() {
   }
 }
 
-// Załaduj ustawienia na stronie
-document.addEventListener("DOMContentLoaded", loadAutoModeParameters);
 
 
       // --- Startowe aktualizacje ---
@@ -1101,6 +1099,7 @@ document.addEventListener("DOMContentLoaded", loadAutoModeParameters);
       loadGallery();
       loadConfig();
       loadControlState();
+	  loadAutoModeParameters();
 
       setInterval(() => {
         updateChart();
@@ -1110,6 +1109,7 @@ document.addEventListener("DOMContentLoaded", loadAutoModeParameters);
       setInterval(updateWeather, 600000);
       setInterval(loadGallery, 60000);
       setInterval(loadControlState, 10000);
+	  
     });
   </script>
 </body>
