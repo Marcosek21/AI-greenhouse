@@ -42,9 +42,20 @@ DEFAULT_CONTROL = {
     "light": False,
     "heater": False,
     "pump": False,
-    "pump_ack": False,   # potwierdzenie, że szklarnia odebrała zlecenie pompy
-    "pump_work_time": 10 # sekundy pracy pompy na cykl
+    "pump_ack": False,
+    "pump_work_time": 10,   # czas pracy pompy w sekundach
+    "heater_temp_min": 18,  # minimalna temperatura dla grzania
+    "heater_temp_max": 22,  # maksymalna temperatura dla grzania
+    "light_min_lux": 200,   # minimalne natężenie światła
+    "light_max_lux": 1500,  # maksymalne natężenie światła
+    "roof_open_temp": 25,   # temperatura otwierania dachu
+    "roof_close_temp": 15,  # temperatura zamykania dachu
+    "soil_min_moisture": 30,  # minimalna wilgotność gleby
+    "soil_max_moisture": 60,  # maksymalna wilgotność gleby
+    "water_critical_distance": 0.5,  # krytyczna odległość lustra wody (m)
+    "battery_critical_level": 11.5   # napięcie krytyczne baterii
 }
+
 
 app = Flask(__name__)
 CORS(app)
@@ -499,6 +510,45 @@ def get_control_for_device():
         save_control(state)
 
     return jsonify(response_state)
+
+
+@app.route('/api/auto-mode-parameters', methods=['POST'])
+def auto_mode_parameters():
+    """Przekazuje ustawienia do szklarni (mikrokontrolera) dla trybu auto."""
+    data = request.json
+
+    # Walidacja - sprawdź, czy wszystkie dane są dostępne
+    required_fields = [
+        "heater_temp_min", "heater_temp_max", "light_min_lux", "light_max_lux",
+        "roof_open_temp", "roof_close_temp", "soil_min_moisture", "soil_max_moisture",
+        "water_critical_distance", "battery_critical_level"
+    ]
+
+    # Jeśli brakuje jakiegoś kluczowego parametru
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        return jsonify({"status": "error", "message": f"Missing fields: {', '.join(missing_fields)}"}), 400
+
+    # Ładowanie aktualnych ustawień
+    state = load_control()
+
+    # Zaktualizowanie stanu kontrolera na podstawie danych
+    state["heater_temp_min"] = float(data["heater_temp_min"])
+    state["heater_temp_max"] = float(data["heater_temp_max"])
+    state["light_min_lux"] = float(data["light_min_lux"])
+    state["light_max_lux"] = float(data["light_max_lux"])
+    state["roof_open_temp"] = float(data["roof_open_temp"])
+    state["roof_close_temp"] = float(data["roof_close_temp"])
+    state["soil_min_moisture"] = float(data["soil_min_moisture"])
+    state["soil_max_moisture"] = float(data["soil_max_moisture"])
+    state["water_critical_distance"] = float(data["water_critical_distance"])
+    state["battery_critical_level"] = float(data["battery_critical_level"])
+
+    # Zapisujemy do pliku
+    save_control(state)
+
+    # Potwierdzenie
+    return jsonify({"status": "ok", "message": "Auto mode parameters updated."})
 
 
 # =================== MAIN ===================
