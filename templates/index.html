@@ -384,7 +384,6 @@
     <button
       id="save-control-config"
       class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 mt-4 sm:mt-0"
-      onclick="saveAutoModeParameters()"
     >
       💾 Zapisz
     </button>
@@ -1088,6 +1087,12 @@ async function saveAutoModeParameters() {
     alert("Błąd zapisywania ustawień.");
   }
 }
+
+// --- PODPIĘCIE PRZYCISKU (TO JEST KLUCZOWA ZMIANA) ---
+      const saveControlBtn = document.getElementById("save-control-config");
+      if (saveControlBtn) {
+          saveControlBtn.addEventListener("click", saveAutoModeParameters);
+      }
 
 
 
