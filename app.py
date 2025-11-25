@@ -358,7 +358,7 @@ def get_weather():
             "condition": condition,
             "description": description,
             "is_raining": is_raining,
-            "datetime": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "datetime": now.strftime("%Y-%m-%d_%H:%M:%S"),
             "timestamp": int(now.timestamp())
         })
 
